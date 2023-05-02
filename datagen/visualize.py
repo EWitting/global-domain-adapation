@@ -2,6 +2,7 @@
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib import cm
 
 
 from sklearn.metrics import accuracy_score
@@ -22,7 +23,7 @@ def visualizeShift2D(Xs, Xg, Xt):
     plt.show()
 
 
-def visualizeDecisionBoundary2D(Xs, Xt, ys, yt, model, name = None):
+def visualizeDecisionBoundary2D(Xs, Xt, ys, yt, model, name=None):
     """Given a trained model, plots the: labeled source data, the decision boundary,
      the position of the target data, and computes the accuracy.
      Optionally add a name to the plot title."""
@@ -36,11 +37,10 @@ def visualizeDecisionBoundary2D(Xs, Xt, ys, yt, model, name = None):
     X_grid = np.stack([x_grid.ravel(), y_grid.ravel()], -1)
     yp_grid = model.predict(X_grid).reshape(100, 100)
 
-    cm = plt.cm.RdBu
     _, ax1 = plt.subplots(1, 1, figsize=(6, 5))
 
     ax1.set_title("Input space")
-    ax1.contourf(x_grid, y_grid, yp_grid, cmap=cm, alpha=0.6)
+    ax1.contourf(x_grid, y_grid, yp_grid, cmap=cm.RdBu, alpha=0.6)
     ax1.scatter(Xs[ys == 0, 0], Xs[ys == 0, 1],
                 label="source", edgecolors='k', c="red")
     ax1.scatter(Xs[ys == 1, 0], Xs[ys == 1, 1],
