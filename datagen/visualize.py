@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import cm
 
-
+from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score
 
 
@@ -37,7 +37,11 @@ def visualizeDecisionBoundary2D(Xs, Xt, ys, yt, model, name=None):
     X_grid = np.stack([x_grid.ravel(), y_grid.ravel()], -1)
     yp_grid = model.predict(X_grid).reshape(100, 100)
 
-    _, ax1 = plt.subplots(1, 1, figsize=(6, 5))
+    X_pca = np.concatenate((model.encoder_.predict(Xs),
+                            model.encoder_.predict(Xt)))
+    X_pca = PCA(2).fit_transform(X_pca)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     ax1.set_title("Input space")
     ax1.contourf(x_grid, y_grid, yp_grid, cmap=cm.RdBu, alpha=0.6)
@@ -51,8 +55,19 @@ def visualizeDecisionBoundary2D(Xs, Xt, ys, yt, model, name=None):
     ax1.set_xticklabels([])
     ax1.tick_params(direction='in')
 
+    ax2.set_title("PCA encoded space")
+    ax2.scatter(X_pca[:len(Xs), 0][ys == 0], X_pca[:len(Xs), 1][ys == 0],
+                label="source", edgecolors='k', c="red")
+    ax2.scatter(X_pca[:len(Xs), 0][ys == 1], X_pca[:len(Xs), 1][ys == 1],
+                label="source", edgecolors='k', c="blue")
+    ax2.scatter(X_pca[len(Xs):, 0], X_pca[len(Xs):, 1],
+                label="target", edgecolors='k', c="black")
+    ax2.set_yticklabels([])
+    ax2.set_xticklabels([])
+    ax2.tick_params(direction='in')
+
     title = f"Target Acc : {acc:.3f}"
     if name:
         title = f"{name} - {title}"
-    ax1.set_title(title)
+    fig.suptitle(title)
     plt.show()
