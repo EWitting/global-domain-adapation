@@ -4,12 +4,16 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import cm
 
+import plotly.express as px
+import pandas as pd
+
 from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score
 
 
 def visualize_shift2d(xs, ys, xg, yg, xt, yt):
-    """Plot the positions of the source, global and target sets, with markers for binary labels"""
+    """Plot the positions of the source, global and target sets, with markers for binary labels.
+    Uses matplotlib."""
 
     _, ax1 = plt.subplots(1, 1, figsize=(6, 5))
     ax1.set_title("Input space")
@@ -27,6 +31,39 @@ def visualize_shift2d(xs, ys, xg, yg, xt, yt):
     ax1.set_xticklabels([])
     ax1.tick_params(direction='in')
     plt.show()
+
+
+def visualize_shift2d_px(xs, ys, xg, yg, xt, yt):
+    """Plot the positions of the source, global and target sets, with markers for binary labels.
+    Uses plotly for interactive notebooks."""
+
+    data = {
+        'feature1': np.concatenate([xs[:, 0], xt[:, 0], xg[:, 0]]),
+        'feature2': np.concatenate([xs[:, 1], xt[:, 1], xg[:, 1]]),
+        'label': np.concatenate([ys, yt, yg]),
+        'domain': ['source'] * len(xs) + ['target'] * len(xt) + ['global'] * len(xg)}
+    df = pd.DataFrame(data)
+    symbol_mapping = {1: 'circle', 0: 'x'}
+    fig = px.scatter(df, x='feature1', y='feature2', color='domain', symbol='label', symbol_map=symbol_mapping)
+    fig.show()
+
+
+def visualize_shift3d_px(xs, ys, xg, yg, xt, yt):
+    """Plot the positions of the source, global and target sets, with markers for binary labels.
+    Uses plotly for interactive notebooks."""
+
+    data = {
+        'feature1': np.concatenate([xs[:, 0], xt[:, 0], xg[:, 0]]),
+        'feature2': np.concatenate([xs[:, 1], xt[:, 1], xg[:, 1]]),
+        'feature3': np.concatenate([xs[:, 2], xt[:, 2], xg[:, 2]]),
+        'label': np.concatenate([ys, yt, yg]),
+        'domain': ['source'] * len(xs) + ['target'] * len(xt) + ['global'] * len(xg)}
+    df = pd.DataFrame(data)
+    symbol_mapping = {1: 'circle', 0: 'x'}
+    fig = px.scatter_3d(df, x='feature1', y='feature2', z='feature3',
+                        color='domain', symbol='label', symbol_map=symbol_mapping)
+    fig.update_traces(marker=dict(size=2))
+    fig.show()
 
 
 def visualizeDecisionBoundary2D(Xs, Xt, ys, yt, model, name=None):

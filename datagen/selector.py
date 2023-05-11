@@ -57,7 +57,7 @@ Intended use is passing it to the builder after creation, instead of calling the
 
         stds = x.std(0)
         center = x.mean(0)
-        bias_dir = np.random.rand(x.shape[1])
+        bias_dir = 2*np.random.rand(x.shape[1]) - 0.5
         bias = self.bias_dist * stds * bias_dir / np.linalg.norm(bias_dir)
 
         source_center = center + 0.5 * bias

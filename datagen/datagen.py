@@ -1,4 +1,5 @@
-"""This module contains functions to generate datasets that simulate sample selection bias"""
+"""DEPRECATED: please use the builder and selector modules instead.
+This module contains functions to generate datasets that simulate sample selection bias."""
 
 import numpy as np
 from sklearn.datasets import make_moons
