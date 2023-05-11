@@ -58,7 +58,7 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
             domains[target]['x'], **fit_params)
         pbar.set_description("Finished training")
 
-    # then evaluate on different test sets (not every combination is used)
+    # then evaluate accuracy on different test sets (not every combination is used)
     metrics = dict()
     pbar = tqdm([
         ('s-only', 's'),
@@ -78,4 +78,28 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
         acc = accuracy_score(y, y_pred > 0.5)
         metrics[name] = acc
         pbar.set_description("Finished evaluating")
+
+    # for additional information, train models to classify which domain a point belongs to
+    # can be used directly as a distance metric between distributions, for a certain hypothesis class (model type)
+    # called proxy A-distance (Ben-David et al., A theory of learning from different domains, 2010)
+    # halved so that the range is in [0,1], (assuming classification accuracy is never below 50%)
+    pbar = tqdm([('s', 'g'), ('s', 't'), ('g', 't')])
+    for domain_a, domain_b in pbar:
+        name = f"half-A-dist-{domain_a}-{domain_b}"
+        pbar.set_description(f"Estimate proxy A-distance between '{domain_a}' and '{domain_b}'")
+
+        # combine datasets, and use domain as label, permutes randomly
+        x = np.concatenate(
+            [domains[domain_a]['x'],
+             domains[domain_b]['x']],)
+        y = np.concatenate([np.full(domains[domain_a]['x'].shape[0], 0),
+                           np.full(domains[domain_b]['x'].shape[0], 1)])
+        p = np.random.permutation(x.shape[0])
+        x, y = x[p], y[p]
+
+        model = model_builder().fit(x, y, x, **fit_params)
+        y_pred = model.predict(x)
+        acc = accuracy_score(y, y_pred > 0.5)
+        metrics[name] = 2*acc - 1  # equiv to 0.5 * a_dist = 0.5 * 2*(1-2*err)
+        pbar.set_description("Estimate distance")
     return metrics
