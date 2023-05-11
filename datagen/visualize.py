@@ -8,14 +8,20 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score
 
 
-def visualizeShift2D(Xs, Xg, Xt):
-    """Plot the positions of the source, global and target sets, without labels"""
+def visualize_shift2d(xs, ys, xg, yg, xt, yt):
+    """Plot the positions of the source, global and target sets, with markers for binary labels"""
 
     _, ax1 = plt.subplots(1, 1, figsize=(6, 5))
     ax1.set_title("Input space")
-    ax1.scatter(Xg[:, 0], Xg[:, 1], label="global", edgecolors='k', c="green")
-    ax1.scatter(Xs[:, 0], Xs[:, 1], label="source", edgecolors='k', c="blue")
-    ax1.scatter(Xt[:, 0], Xt[:, 1], label="target", edgecolors='k', c="orange")
+    for x, y, label, c in [
+        (xg, yg, 'global', 'green'),
+        (xs, ys, 'source', 'blue'),
+        (xt, yt, 'target', 'orange')]:
+        pos = x[y == 1]
+        neg = x[y == 0]
+
+        ax1.scatter(pos[:, 0], pos[:, 1], label=label, c=c, marker='o')
+        ax1.scatter(neg[:, 0], neg[:, 1], c=c, marker='x')
     ax1.legend(loc="lower right")
     ax1.set_yticklabels([])
     ax1.set_xticklabels([])
