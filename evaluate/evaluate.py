@@ -1,6 +1,7 @@
 """Contains utility functions that can be used for evaluating a dataset and DA model's performance"""
 
 from sklearn.metrics import accuracy_score
+from tqdm import tqdm
 import numpy as np
 
 
@@ -12,40 +13,69 @@ def analyze_data(dataset) -> dict:
     res = dict()
     xs, ys, xg, yg, xt, yt = dataset
     for x, y, name in [
-            (xg, yg, 'global'),
-            (xs, ys, 'source'),
-            (xt, yt, 'target')]:
+        (xg, yg, 'global'),
+        (xs, ys, 'source'),
+        (xt, yt, 'target')]:
         res[f'num-{name}'] = x.shape[0]
         res[f'uniqueness-{name}'] = np.unique(x, axis=0).shape[0] / x.shape[0]
         res[f'class-marginal-{name}'] = np.mean(y)
     return res
 
 
-def evaluate_model(dataset, model_builder, fit_params: dict) -> dict:
-    """Evaluate a domain adaptation model on a dataset, with source only, target only, and global.
-    Prints results to console.
+def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
+    """Evaluate a domain adaptation model on a dataset.
+    Trains and evaluates the model multiple times with various combinations of domains.
+    Can be used to both evaluate the efficiency of the DA with respect to baselines,
+    and give insight into the dataset's characteristics and separability.
 
     :param dataset: (tuple of Xs, ys, Xg, yg, Xt, yt) data and labels for source, global and target sets
     :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
-    :returns dict with accuracies 'acc-{name}' for name in {source, target, global}
+    :returns dictionary with all computed results
     """
 
-    res = dict()
     xs, ys, xg, yg, xt, yt = dataset
-    for name, target in [
-        ("source (supervised)", xs),
-        ("target (domain adaptation)", xt),
-        ("global (ours)", xg)]:
-        print(f"Evaluating {name}...")
-        acc = _eval_single_model(model_builder(), xs, ys, target, xt, yt, fit_params)
-        res[f'acc-{name}'] = acc
-        print(f"\tDone. Accuracy = {acc}")
-    return res
+    domains = {
+        's': {'x': xs, 'y': ys},
+        'g': {'x': xg, 'y': yg},
+        't': {'x': xt, 'y': yt},
+    }
 
+    # first train models
+    models = dict()
+    pbar = tqdm([
+        ('s', 's'),
+        ('g', 'g'),
+        ('t', 't'),
+        ('s', 't'),
+        ('s', 'g')])
+    for source, target in pbar:
+        name = f'{source}-only' if source == target else f'{source}->{target}'
+        pbar.set_description(f"Training model '{name}'")
+        models[name] = model_builder().fit(
+            domains[source]['x'],
+            domains[source]['y'],
+            domains[target]['x'], **fit_params)
+        pbar.set_description("Finished training")
 
-def _eval_single_model(model, xs, ys, xt_train, xt_true, yt, fit_params):
-    """Find the accuracy of a DA trained on a given target set, on a true set."""
-    model.fit(xs, ys, xt_train, **fit_params)
-    yt_pred = model.predict(xt_true)
-    return accuracy_score(yt, yt_pred > 0.5)
+    # then evaluate on different test sets (not every combination is used)
+    metrics = dict()
+    pbar = tqdm([
+        ('s-only', 's'),
+        ('g-only', 'g'),
+        ('t-only', 't'),
+        ('s-only', 't'),
+        ('g-only', 't'),
+        ('s->t', 't'),
+        ('s->g', 't')  # <-- This is the intended usage in real situations
+    ])
+    for model, test in pbar:
+        name = f"{model}-acc-on-{test}"
+        pbar.set_description(f"Evaluating model '{model}' on '{test}'")
+        x = domains[test]['x']
+        y = domains[test]['y']
+        y_pred = models[model].predict(x)
+        acc = accuracy_score(y, y_pred > 0.5)
+        metrics[name] = acc
+        pbar.set_description("Finished evaluating")
+    return metrics
