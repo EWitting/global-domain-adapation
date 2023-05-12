@@ -15,8 +15,8 @@ def sample_biased(x_: np.ndarray, y_: np.ndarray, n: int,
     return x_[sample], y_[sample]
 
 
-class Selector:
-    """Selector class that is used to simulate sample selection bias, creating a shifted source and target set.
+class FeatureSelector:
+    """Selector class to simulate sample selection bias on features, creating a shifted source and target set.
 Intended use is passing it to the builder after creation, instead of calling the methods directly."""
 
     def __init__(self, n_global: int, n_source: int, n_target: int,
