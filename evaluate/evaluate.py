@@ -5,6 +5,20 @@ from tqdm import tqdm
 import numpy as np
 
 
+def acc_slope(acc: np.ndarray, last_portion: float = 0.05, preceding_portion: float = 0.05) -> float:
+    """Compute an indication of convergence, by the slope of the accuracy.
+    Averaged over two trail proportions of the acc curve.
+    Values near 0 indicate convergence, positive values indicate that progress is still being made."""
+    array_length = len(acc)
+    last_num = max(1, int(last_portion * array_length))
+    preceding_num = max(1, int(preceding_portion * array_length))
+
+    last_samples = acc[-last_num:]
+    preceding_samples = acc[-(last_num + preceding_num):-last_num]
+
+    return (np.mean(last_samples) - np.mean(preceding_samples)) / 0.5*(last_num + preceding_num)
+
+
 def analyze_data(dataset) -> dict:
     """Analyze properties of a dataset using some directly computable statistical measures, without ML.
     :param dataset: tuple (xg, yg, xs, ys, xt, yt) where s=source, g=global, t=target.
@@ -42,6 +56,7 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
     }
 
     # first train models
+    metrics = dict()
     models = dict()
     pbar = tqdm([
         ('s', 's'),
@@ -56,10 +71,14 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
             domains[source]['x'],
             domains[source]['y'],
             domains[target]['x'], **fit_params)
+
+        # compute a convergence indication from the history
+        if hasattr(models[name], 'history_'):
+            indication = acc_slope(models[name].history_['acc'])
+            metrics[f'{name}-convergence-acc-slope'] = indication
         pbar.set_description("Finished training")
 
     # then evaluate accuracy on different test sets (not every combination is used)
-    metrics = dict()
     pbar = tqdm([
         ('s-only', 's'),
         ('g-only', 'g'),
