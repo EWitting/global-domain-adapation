@@ -3,7 +3,7 @@ import numpy as np
 
 def _select_biased(x, y, domain, n, target_domains):
     """Select from target domains only, select with replacement if necessary to reach n."""
-    idx = [i for i in range(n) if domain[i] in target_domains]
+    idx = [i for i in range(len(x)) if domain[i] in target_domains]
     if len(idx) > n:
         idx = idx[:n]
     else:
@@ -54,8 +54,8 @@ class DomainSelector:
         xg, yg = x[:self.n_global], y[:self.n_global]
 
         # select source and target from remaining data
-        x_, y_, domain = x[self.n_global:], y[self.n_global:], domain[self.n_global:]
-        xs, ys = _select_biased(x_, y_, domain, self.n_source, source_domains)
-        xt, yt = _select_biased(x_, y_, domain, self.n_target, target_domains)
+        x_, y_, domain_ = x[self.n_global:], y[self.n_global:], domain[self.n_global:]
+        xs, ys = _select_biased(x_, y_, domain_, self.n_source, source_domains)
+        xt, yt = _select_biased(x_, y_, domain_, self.n_target, target_domains)
 
         return xs, ys, xg, yg, xt, yt
