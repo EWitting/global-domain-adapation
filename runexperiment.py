@@ -37,5 +37,6 @@ fit_params = dict(epochs=400, batch_size=34, verbose=0)
 
 # evaluate model with dataset
 deep_metrics = evaluate_deep(data, lambda: DANN(**model_params), fit_params)
+store.save_eval(deep_metrics, 'DANN', model_params, fit_params)
 for key in deep_metrics:
     print(f"{key}: {deep_metrics[key]:.2f}")

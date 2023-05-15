@@ -5,12 +5,22 @@ import shutil
 import time
 import numpy as np
 import json
+from types import FunctionType
 
 # names of files inside the store folder
-DATA_FILE = 'data.npz'
-CFG_FILE = 'config.json'
-STATS_FILE = 'stats.json'
+DATA_FILE = 'data'
+CFG_FILE = 'config'
+STATS_FILE = 'stats'
+EVAL_FILE = 'eval'
 
+
+def serialize_soft(obj):
+    """Try to serialize, otherwise return a placeholder using the classname"""
+    if isinstance(obj, FunctionType):
+        # Convert functions to their string representation
+        return obj.__name__
+    else:
+        return f"<unserializable object of type '{obj.__class__.__name__}'>"
 
 class Store:
     """Reference to a directory on disk, for storing a dataset for later retrieval, along with metadata."""
@@ -69,27 +79,46 @@ class Store:
 
     def save_data(self, xg, yg, xs, ys, xt, yt) -> None:
         """Store three sets of features and labels in this store"""
-        np.savez(os.path.join(self.path_full, DATA_FILE),
+        np.savez(os.path.join(self.path_full, f'{DATA_FILE}.npz'),
                  xg=xg, yg=yg, xs=xs, ys=ys, xt=xt, yt=yt)
 
     def save_config(self, builder) -> None:
         """Save a JSON file describing the dataset builder configuration."""
         json_data = json.dumps(builder.to_json(), indent=4)
-        path = os.path.join(self.path_full, CFG_FILE)
+        path = os.path.join(self.path_full, f'{CFG_FILE}.json')
         with open(path, 'w') as f:
             f.write(json_data)
 
-    def save_stats(self, stats : dict) -> None:
+    def save_stats(self, stats: dict) -> None:
         """Store statistical measures of the dataset, that are independent of the machine learning model."""
         json_data = json.dumps(stats, sort_keys=True, indent=4)
-        path = os.path.join(self.path_full, STATS_FILE)
+        path = os.path.join(self.path_full, f'{STATS_FILE}.json')
+        with open(path, 'w') as f:
+            f.write(json_data)
+
+    def save_eval(self, metrics: dict, model_type: str, model_params: dict, fit_params: dict, identifier: str = None):
+        """Store metrics from evaluating a DA model on the dataset. Stores model configuration for future reference.
+        :param metrics: results of the evaluation
+        :param model_type: name of model, e.g. 'DANN' or 'MDD'
+        :param model_params: parameters of the model, does not include the model type itself
+        :param fit_params: parameters of fitting, like epochs, batch size etc.
+        :param identifier: appended to filename, change the identifier to prevent
+         overwriting if intending to save multiple configuration's results. leave None to ignore.
+        """
+        data = dict(model_type=model_type,
+                    metrics=metrics,
+                    model_params=model_params,
+                    fit_params=fit_params)
+        json_data = json.dumps(data, sort_keys=True, indent=4, default=serialize_soft)
+        filename = f'{EVAL_FILE}_{identifier}.json' if identifier else f'{EVAL_FILE}.json'
+        path = os.path.join(self.path_full, filename)
         with open(path, 'w') as f:
             f.write(json_data)
 
     def load_data(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Load a dataset from this store, as the tuple (xg, yg, xs, ys, xt, yt),
         where g=global, s=source, t=target, x=features, y=label."""
-        path = os.path.join(self.path_full, DATA_FILE)
+        path = os.path.join(self.path_full, f'{DATA_FILE}.npz')
         loaded = np.load(path)
         return (loaded['xg'], loaded['yg'],
                 loaded['xs'], loaded['ys'],
