@@ -8,6 +8,7 @@ from datagen.conceptshift.shifter import Shifter
 from datagen.conceptshift.builder import ConceptShiftDataBuilder
 from datagen.visualize import visualize_shift2d
 from evaluate.evaluate import analyze_data
+from storage.storage import Store
 
 # configure dataset generation
 init_classification = dict(n_samples=500, n_features=2, n_informative=2, n_repeated=0, n_redundant=0)
@@ -18,6 +19,10 @@ builder = ConceptShiftDataBuilder(init_classification, shifter, selector)
 
 # generate and analyze dataset
 data = builder.generate()
+store = Store.new("experiment", overwrite=True)
+store.save_data(*data)
+
+data = store.load_data()
 data_metrics = analyze_data(data)
 for key, value in sorted(data_metrics.items(), key=lambda x: x[0]):
     print(f"{key}: {data_metrics[key]}")
