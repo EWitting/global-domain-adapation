@@ -7,11 +7,11 @@ import numpy as np
 
 def analyze_data(dataset) -> dict:
     """Analyze properties of a dataset using some directly computable statistical metrics, without ML.
-    :param dataset: tuple (xs, ys, xg, yg, xt, yt) where s=source, g=global, t=target.
+    :param dataset: tuple (xg, yg, xs, ys, xt, yt) where s=source, g=global, t=target.
     :returns dict with metrics
     """
     res = dict()
-    xs, ys, xg, yg, xt, yt = dataset
+    xg, yg, xs, ys, xt, yt = dataset
     for x, y, name in [
         (xg, yg, 'global'),
         (xs, ys, 'source'),
@@ -28,13 +28,13 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
     Can be used to both evaluate the efficiency of the DA with respect to baselines,
     and give insight into the dataset's characteristics and separability.
 
-    :param dataset: (tuple of Xs, ys, Xg, yg, Xt, yt) data and labels for source, global and target sets
+    :param dataset: (tuple of xg, yg, xs, ys, xt, yt) data and labels for source, global and target sets
     :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
     :returns dictionary with all computed results
     """
 
-    xs, ys, xg, yg, xt, yt = dataset
+    xg, yg, xs, ys, xt, yt = dataset
     domains = {
         's': {'x': xs, 'y': ys},
         'g': {'x': xg, 'y': yg},

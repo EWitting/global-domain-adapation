@@ -49,7 +49,7 @@ Intended use is passing it to the builder after creation, instead of calling the
         """Perform the selection on a dataset, as configured in initialization.
         :param x: Features as floats in shape (N,D)
         :param y: Labels in shape (N,)
-        :return: tuple (xs, ys, xg, yg, xt, yt) where s=source, g=global, t=target.
+        :return: tuple (xg, yg, xs, ys, xt, yt) where s=source, g=global, t=target.
         """
 
         # split into source candidates, global, target candidates
@@ -67,7 +67,7 @@ Intended use is passing it to the builder after creation, instead of calling the
 
         xs, ys = sample_biased(xs_, ys_, self.n_source, source_center, source_std)
         xt, yt = sample_biased(xt_, yt_, self.n_target, target_center, target_std)
-        return xs, ys, xg, yg, xt, yt
+        return xg, yg, xs, ys, xt, yt
 
     def _make_split(self, x: np.ndarray, y: np.ndarray) -> tuple[
             np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -76,7 +76,7 @@ Intended use is passing it to the builder after creation, instead of calling the
         the remainder is divided based on the ratio of n_source, n_target.
         :param x: Features as floats in shape (N,D)
         :param y: Labels in shape (N,)
-        :return: tuple (xs, ys, xg, yg, xt, yt), where s=source, g=global, t=target."""
+        :return: tuple (xg, yg, xs, ys, xt, yt), where s=source, g=global, t=target."""
         n_original = len(x)
         assert len(x) == len(y)
         assert n_original > self.n_global
@@ -93,4 +93,4 @@ Intended use is passing it to the builder after creation, instead of calling the
         xs, ys = x[self.n_global:self.n_global + m_source], y[self.n_global:self.n_global + m_source]
         xt, yt = x[self.n_global + m_source:], y[self.n_global + m_source:]
 
-        return xs, ys, xg, yg, xt, yt
+        return xg, yg, xs, ys, xt, yt

@@ -6,6 +6,7 @@ from tensorflow.keras.optimizers.legacy import Adam
 from datagen.conceptshift.selector import DomainSelector
 from datagen.conceptshift.shifter import Shifter
 from datagen.conceptshift.builder import ConceptShiftDataBuilder
+from datagen.visualize import visualize_shift2d
 from evaluate.evaluate import analyze_data
 
 # configure dataset generation
@@ -20,6 +21,8 @@ data = builder.generate()
 data_metrics = analyze_data(data)
 for key, value in sorted(data_metrics.items(), key=lambda x: x[0]):
     print(f"{key}: {data_metrics[key]}")
+
+visualize_shift2d(*data)
 
 # configure model
 model_params = dict(loss="bce", optimizer=Adam(0.001, beta_1=0.5), lambda_=1, metrics=["acc"], random_state=0)

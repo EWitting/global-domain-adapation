@@ -40,7 +40,7 @@ class DomainSelector:
         :param x: Features as floats in shape (N,D)
         :param y: Labels in shape (N,)
         :param domain: Domain labels in shape (N,)
-        :return: tuple (xs, ys, xg, yg, xt, yt), where s=source, g=global, t=target.
+        :return: tuple (xg, yg, xs, ys, xt, yt), where s=source, g=global, t=target.
         """
         domains = np.unique(domain)
         assert self.n_domains_source + self.n_domains_target <= len(domains)
@@ -58,4 +58,4 @@ class DomainSelector:
         xs, ys = _select_biased(x_, y_, domain_, self.n_source, source_domains)
         xt, yt = _select_biased(x_, y_, domain_, self.n_target, target_domains)
 
-        return xs, ys, xg, yg, xt, yt
+        return xg, yg, xs, ys, xt, yt

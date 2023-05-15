@@ -25,9 +25,9 @@ class ConceptShiftDataBuilder:
         """
         Generate a new source, global and test dataset using the configuration from initialization.
 
-        :return:  tuple (xs, ys, xg, yg, xt, yt), where s=source, g=global, t=target.
+        :return:  tuple (xg, yg, xs, ys, xt, yt), where s=source, g=global, t=target.
         """
         x, y = make_classification(**self.init_classify)
         x, y, domain = self.shifter.shift(x, y)
-        xs, ys, xg, yg, xt, yt = self.selector.select(x, y, domain)
-        return xs, ys, xg, yg, xt, yt
+        xg, yg, xs, ys, xt, yt = self.selector.select(x, y, domain)
+        return xg, yg, xs, ys, xt, yt
