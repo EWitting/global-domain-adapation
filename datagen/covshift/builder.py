@@ -27,3 +27,12 @@ class CovShiftBuilder:
         x, y = make_classification(**self.init_classify)
         xg, yg, xs, ys, xt, yt = self.selector.select(x, y)
         return xg, yg, xs, ys, xt, yt
+
+    def to_json(self):
+        selector_json = self.selector.to_json()
+
+        return {
+            'class_name': self.__class__.__name__,
+            'init_classify': self.init_classify,
+            'selector': selector_json
+        }

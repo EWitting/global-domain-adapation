@@ -2,6 +2,7 @@ import numpy as np
 
 from scipy.stats import special_ortho_group
 
+
 class Shifter:
     def __init__(self, n_domains: int = 2, rot: float = 0, trans: float = 0, scale: float = 1):
         """
@@ -68,3 +69,12 @@ class Shifter:
         res_y = res_y[p]
         res_domain = res_domain[p]
         return res_x, res_y, res_domain
+
+    def to_json(self):
+        return {
+            'class_name': self.__class__.__name__,
+            'n_domains': self.n_domains,
+            'rot': self.rot,
+            'trans': self.trans,
+            'scale': self.scale
+        }

@@ -59,3 +59,13 @@ class DomainSelector:
         xt, yt = _select_biased(x_, y_, domain_, self.n_target, target_domains)
 
         return xg, yg, xs, ys, xt, yt
+
+    def to_json(self):
+        return {
+            'class_name': self.__class__.__name__,
+            'n_global': self.n_global,
+            'n_source': self.n_source,
+            'n_target': self.n_target,
+            'n_domains_source': self.n_domains_source,
+            'n_domains_target': self.n_domains_target
+        }

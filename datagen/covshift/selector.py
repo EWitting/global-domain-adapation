@@ -94,3 +94,14 @@ Intended use is passing it to the builder after creation, instead of calling the
         xt, yt = x[self.n_global + m_source:], y[self.n_global + m_source:]
 
         return xg, yg, xs, ys, xt, yt
+
+    def to_json(self):
+        return {
+            'class_name': self.__class__.__name__,
+            'n_global': self.n_global,
+            'n_source': self.n_source,
+            'n_target': self.n_target,
+            'source_scale': self.source_scale,
+            'target_scale': self.target_scale,
+            'bias_dist': self.bias_dist
+        }

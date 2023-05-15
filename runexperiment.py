@@ -21,6 +21,7 @@ builder = ConceptShiftDataBuilder(init_classification, shifter, selector)
 data = builder.generate()
 store = Store.new("experiment", overwrite=True)
 store.save_data(*data)
+store.save_config(builder)
 
 data = store.load_data()
 data_metrics = analyze_data(data)

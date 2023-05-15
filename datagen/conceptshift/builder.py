@@ -31,3 +31,14 @@ class ConceptShiftDataBuilder:
         x, y, domain = self.shifter.shift(x, y)
         xg, yg, xs, ys, xt, yt = self.selector.select(x, y, domain)
         return xg, yg, xs, ys, xt, yt
+
+    def to_json(self) -> dict:
+        shifter_json = self.shifter.to_json()
+        selector_json = self.selector.to_json()
+
+        return {
+            'class_name': self.__class__.__name__,
+            'init_classify': self.init_classify,
+            'shifter': shifter_json,
+            'selector': selector_json
+        }
