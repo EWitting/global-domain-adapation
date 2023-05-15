@@ -9,6 +9,7 @@ import json
 # names of files inside the store folder
 DATA_FILE = 'data.npz'
 CFG_FILE = 'config.json'
+STATS_FILE = 'stats.json'
 
 
 class Store:
@@ -71,13 +72,19 @@ class Store:
         np.savez(os.path.join(self.path_full, DATA_FILE),
                  xg=xg, yg=yg, xs=xs, ys=ys, xt=xt, yt=yt)
 
-    def save_config(self, builder):
+    def save_config(self, builder) -> None:
         """Save a JSON file describing the dataset builder configuration."""
         json_data = json.dumps(builder.to_json(), indent=4)
         path = os.path.join(self.path_full, CFG_FILE)
         with open(path, 'w') as f:
             f.write(json_data)
 
+    def save_stats(self, stats : dict) -> None:
+        """Store statistical measures of the dataset, that are independent of the machine learning model."""
+        json_data = json.dumps(stats, sort_keys=True, indent=4)
+        path = os.path.join(self.path_full, STATS_FILE)
+        with open(path, 'w') as f:
+            f.write(json_data)
 
     def load_data(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Load a dataset from this store, as the tuple (xg, yg, xs, ys, xt, yt),

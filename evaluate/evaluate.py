@@ -6,16 +6,16 @@ import numpy as np
 
 
 def analyze_data(dataset) -> dict:
-    """Analyze properties of a dataset using some directly computable statistical metrics, without ML.
+    """Analyze properties of a dataset using some directly computable statistical measures, without ML.
     :param dataset: tuple (xg, yg, xs, ys, xt, yt) where s=source, g=global, t=target.
     :returns dict with metrics
     """
     res = dict()
     xg, yg, xs, ys, xt, yt = dataset
     for x, y, name in [
-        (xg, yg, 'global'),
-        (xs, ys, 'source'),
-        (xt, yt, 'target')]:
+            (xg, yg, 'global'),
+            (xs, ys, 'source'),
+            (xt, yt, 'target')]:
         res[f'num-{name}'] = x.shape[0]
         res[f'uniqueness-{name}'] = np.unique(x, axis=0).shape[0] / x.shape[0]
         res[f'class-marginal-{name}'] = np.mean(y)

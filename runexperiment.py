@@ -24,9 +24,10 @@ store.save_data(*data)
 store.save_config(builder)
 
 data = store.load_data()
-data_metrics = analyze_data(data)
-for key, value in sorted(data_metrics.items(), key=lambda x: x[0]):
-    print(f"{key}: {data_metrics[key]}")
+data_stats = analyze_data(data)
+store.save_stats(data_stats)
+for key, value in sorted(data_stats.items(), key=lambda x: x[0]):
+    print(f"{key}: {data_stats[key]}")
 
 visualize_shift2d(*data)
 
