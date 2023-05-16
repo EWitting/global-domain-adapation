@@ -16,7 +16,7 @@ def acc_slope(acc: np.ndarray, last_portion: float = 0.05, preceding_portion: fl
     last_samples = acc[-last_num:]
     preceding_samples = acc[-(last_num + preceding_num):-last_num]
 
-    return (np.mean(last_samples) - np.mean(preceding_samples)) / 0.5*(last_num + preceding_num)
+    return (np.mean(last_samples) - np.mean(preceding_samples)) / (0.5*(last_num + preceding_num))
 
 
 def analyze_data(dataset) -> dict:
@@ -120,5 +120,5 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
         y_pred = model.predict(x)
         acc = accuracy_score(y, y_pred > 0.5)
         metrics[name] = 2*acc - 1  # equiv to 0.5 * a_dist = 0.5 * 2*(1-2*err)
-        pbar.set_description("Estimate distance")
+        pbar.set_description("Estimated distance")
     return metrics
