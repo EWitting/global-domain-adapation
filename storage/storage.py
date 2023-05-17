@@ -22,10 +22,11 @@ def serialize_soft(obj):
     else:
         return f"<unserializable object of type '{obj.__class__.__name__}'>"
 
+
 class Store:
     """Reference to a directory on disk, for storing a dataset for later retrieval, along with metadata."""
 
-    def __init__(self, name: str, store_path: str):
+    def __init__(self, name: str, store_path: str = None):
         """
         Create an object referencing the storage folder on disk of a dataset, including metadata and other files.
         Does not create directory on disk. Use `Store.new` instead.
@@ -34,8 +35,12 @@ class Store:
         :param store_path: Path to folder containing all stores. If None, uses '<root>/results'.
         """
 
+        if store_path is None:
+            store_path = os.path.join(os.getcwd(), 'results')
+
         self.name = name
         self.path_full = os.path.join(store_path, name)
+
         if not os.path.exists(self.path_full) or not os.path.isdir(self.path_full):
             raise FileNotFoundError(
                 f"Store object references non-existent path. Expected directory in '{self.path_full}'")
