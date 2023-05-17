@@ -4,7 +4,7 @@ from scipy.stats import special_ortho_group
 
 
 class Shifter:
-    def __init__(self, n_domains: int = 2, rot: float = 0, trans: float = 0, scale: float = 1):
+    def __init__(self, n_domains: int = 2, rot: float = 0, trans: float = 0, scale: float = 0):
         """
         Initialize shifter object, to be used with ConceptShiftDataBuilder.
         :param n_domains: number of partitions of the data

@@ -36,7 +36,7 @@ def analyze_data(dataset) -> dict:
     return res
 
 
-def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
+def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = False) -> dict:
     """Evaluate a domain adaptation model on a dataset.
     Trains and evaluates the model multiple times with various combinations of domains.
     Can be used to both evaluate the efficiency of the DA with respect to baselines,
@@ -45,6 +45,8 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
     :param dataset: (tuple of xg, yg, xs, ys, xt, yt) data and labels for source, global and target sets
     :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
+    :param distance: compute distance between domains by training a classifier.
+     Costly, accounts for about 40% of total evaluation time, disable to speed up.
     :returns dictionary with all computed results
     """
 
@@ -98,10 +100,22 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
         metrics[name] = acc
         pbar.set_description("Finished evaluating")
 
-    # for additional information, train models to classify which domain a point belongs to
-    # can be used directly as a distance metric between distributions, for a certain hypothesis class (model type)
-    # called proxy A-distance (Ben-David et al., A theory of learning from different domains, 2010)
-    # halved so that the range is in [0,1], (assuming classification accuracy is never below 50%)
+    if distance:
+        dists = _calculate_distance(domains, fit_params, model_builder)
+        for key in dists:
+            metrics[key] = dists[key]
+
+    return metrics
+
+
+def _calculate_distance(domains: dict, fit_params, model_builder) -> dict:
+    """
+    Compute a classifier-dependent distance between domains.
+    Trains the given model to classify domains labels, distance is based on classification accuracy.
+    Called proxy A-distance (Ben-David et al., A theory of learning from different domains, 2010)
+    Halved so that the range will be in [0,1], assuming that classification accuracy is never below 50%.
+    """
+    metrics = dict()
     pbar = tqdm([('s', 'g'), ('s', 't'), ('g', 't')])
     for domain_a, domain_b in pbar:
         name = f"half-A-dist-{domain_a}-{domain_b}"
@@ -110,15 +124,15 @@ def evaluate_deep(dataset, model_builder, fit_params: dict) -> dict:
         # combine datasets, and use domain as label, permutes randomly
         x = np.concatenate(
             [domains[domain_a]['x'],
-             domains[domain_b]['x']],)
+             domains[domain_b]['x']])
         y = np.concatenate([np.full(domains[domain_a]['x'].shape[0], 0),
-                           np.full(domains[domain_b]['x'].shape[0], 1)])
+                            np.full(domains[domain_b]['x'].shape[0], 1)])
         p = np.random.permutation(x.shape[0])
         x, y = x[p], y[p]
 
         model = model_builder().fit(x, y, x, **fit_params)
         y_pred = model.predict(x)
         acc = accuracy_score(y, y_pred > 0.5)
-        metrics[name] = 2*acc - 1  # equiv to 0.5 * a_dist = 0.5 * 2*(1-2*err)
+        metrics[name] = 2 * acc - 1  # equiv to 0.5 * a_dist = 0.5 * 2*(1-2*err)
         pbar.set_description("Estimated distance")
     return metrics
