@@ -36,7 +36,7 @@ def analyze_data(dataset) -> dict:
     return res
 
 
-def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = False) -> dict:
+def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = False, verbose: bool = False) -> dict:
     """Evaluate a domain adaptation model on a dataset.
     Trains and evaluates the model multiple times with various combinations of domains.
     Can be used to both evaluate the efficiency of the DA with respect to baselines,
@@ -46,7 +46,8 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
     :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
     :param distance: compute distance between domains by training a classifier.
-     Costly, accounts for about 40% of total evaluation time, disable to speed up.
+    Costly, accounts for about 40% of total evaluation time, disable to speed up.
+    :param verbose: show progress bars
     :returns dictionary with all computed results
     """
 
@@ -65,7 +66,7 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
         ('g', 'g'),
         ('t', 't'),
         ('s', 't'),
-        ('s', 'g')])
+        ('s', 'g')], disable=not verbose)
     for source, target in pbar:
         name = f'{source}-only' if source == target else f'{source}->{target}'
         pbar.set_description(f"Training model '{name}'")
@@ -88,8 +89,7 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
         ('s-only', 't'),
         ('g-only', 't'),
         ('s->t', 't'),
-        ('s->g', 't')  # <-- This is the intended usage in real situations
-    ])
+        ('s->g', 't')], disable=not verbose)
     for model, test in pbar:
         name = f"{model}-acc-on-{test}"
         pbar.set_description(f"Evaluating model '{model}' on '{test}'")
@@ -101,14 +101,14 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
         pbar.set_description("Finished evaluating")
 
     if distance:
-        dists = _calculate_distance(domains, fit_params, model_builder)
+        dists = _calculate_distance(domains, fit_params, model_builder, verbose)
         for key in dists:
             metrics[key] = dists[key]
 
     return metrics
 
 
-def _calculate_distance(domains: dict, fit_params, model_builder) -> dict:
+def _calculate_distance(domains: dict, fit_params, model_builder, verbose) -> dict:
     """
     Compute a classifier-dependent distance between domains.
     Trains the given model to classify domains labels, distance is based on classification accuracy.
@@ -116,7 +116,7 @@ def _calculate_distance(domains: dict, fit_params, model_builder) -> dict:
     Halved so that the range will be in [0,1], assuming that classification accuracy is never below 50%.
     """
     metrics = dict()
-    pbar = tqdm([('s', 'g'), ('s', 't'), ('g', 't')])
+    pbar = tqdm([('s', 'g'), ('s', 't'), ('g', 't')], disable=not verbose)
     for domain_a, domain_b in pbar:
         name = f"half-A-dist-{domain_a}-{domain_b}"
         pbar.set_description(f"Estimate proxy A-distance between '{domain_a}' and '{domain_b}'")
