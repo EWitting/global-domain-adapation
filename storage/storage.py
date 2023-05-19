@@ -78,7 +78,6 @@ class Store:
                     f"Attempted to create new Store, but given path already exists in '{path_full}'.\n"
                     + "Use overwrite=True if intended.")
         os.makedirs(path_full)
-        print(f"Created {path_full}")
 
         return Store(name, store_path)
 

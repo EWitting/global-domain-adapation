@@ -58,7 +58,7 @@ def batch_eval(store_path: str, model, model_params: dict, fit_params: dict, ide
     res = []
     pbar = tqdm(names)
     for name in pbar:
-        pbar.set_description(f"Evaluating model on {name}...")
+        pbar.set_description(f"Evaluating on dataset {name}")
         metrics = run_eval(name, model, model_params, fit_params, identifier, store_path)
         res.append(metrics)
         pbar.set_description("Finished evaluating model")
