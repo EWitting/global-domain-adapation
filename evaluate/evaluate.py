@@ -76,7 +76,7 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
             domains[target]['x'], **fit_params)
 
         # compute a convergence indication from the history
-        if hasattr(models[name], 'history_'):
+        if hasattr(models[name], 'history_') and 'acc' in models[name].history_:
             indication = acc_slope(models[name].history_['acc'])
             metrics[f'{name}-convergence-acc-slope'] = indication
         pbar.set_description("Finished training")
