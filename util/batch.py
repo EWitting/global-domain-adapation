@@ -7,6 +7,7 @@ from tqdm import tqdm, trange
 
 from storage.storage import Store
 from util.run import run_generate, run_eval
+from evaluate.evaluate import evaluate_single
 
 
 def batch_generate(builder, num: int, store_path: str) -> list[tuple[Store, dict]]:
@@ -61,6 +62,32 @@ def batch_eval(store_path: str, model, model_params: dict, fit_params: dict, ide
         pbar.set_description(f"Evaluating on dataset {name}")
         metrics = run_eval(name, model, model_params, fit_params, identifier, store_path)
         res.append(metrics)
+        pbar.set_description("Finished evaluating model")
+
+    return res
+
+
+def batch_eval_single(store_path, model, model_params: dict, fit_params: dict, source: str, target: str) -> list[float]:
+    """Evaluate only a single configuration and record only a single accuracy value for each data set in the batch.
+    Does not save results to disk. Only intended for fast hyperparameter tuning, not for final results."""
+
+    if not os.path.exists(store_path):
+        raise FileNotFoundError(
+            f"Directory with stores for batch evaluation was not found in {os.path.abspath(store_path)}")
+
+    names = []
+    for entry in os.scandir(store_path):
+        if entry.is_dir():
+            names.append(entry.name)
+
+    res = []
+    pbar = tqdm(names)
+    for name in pbar:
+        pbar.set_description(f"Evaluating on dataset {name}")
+        store = Store(name, store_path)
+        data = store.load_data()
+        acc = evaluate_single(data, lambda: model(**model_params), fit_params, source, target)
+        res.append(acc)
         pbar.set_description("Finished evaluating model")
 
     return res

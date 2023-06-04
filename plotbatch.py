@@ -13,11 +13,6 @@ results = results.groupby('identifier')
 for name, data in results:
     name = str(name)
 
-    # plot box plots of all accuracies, sorted by median
-    plot_target_acc_box(data, name)
+    title = f"Strong Concept Shift ({name})"
+    plot_target_acc_box(data, title)
 
-    # plot adaptation of s->g and s->t
-    plot_adaptation(data, name)
-
-    # plot adaptation of s->g where s->t is used as upper bound
-    plot_relative_adaptation(data, name)
