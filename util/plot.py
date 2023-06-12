@@ -6,11 +6,11 @@ from matplotlib.ticker import FuncFormatter
 FORMAT_PERC = FuncFormatter(lambda y, _: '{:.0%}'.format(y))
 
 DISPLAY_NAMES = {
-    "s-only": "Source-only",
+    "s-only": "$S_{only}$",
     "g-only": "Global-only",
-    "t-only": "Target-only",
-    "s->g": "Adapt-to-global",
-    "s->t": "Adapt-to-target"
+    "t-only": "$T_{only}$",
+    "s->g": "$S\\to G$",
+    "s->t": "$S\\to T$"
 }
 
 
@@ -25,7 +25,9 @@ def plot_target_acc_box(results: pd.DataFrame, title: str) -> None:
     acc = _process_target_acc(results)
     acc = acc[cols]
     acc = acc.rename(columns=DISPLAY_NAMES)
-    acc.boxplot()
+
+    plt.figure(dpi=300, figsize=(3.5, 3.5))
+    acc.boxplot(ax=plt.gca())
     plt.gca().yaxis.set_major_formatter(FORMAT_PERC)
 
     plt.title(title)

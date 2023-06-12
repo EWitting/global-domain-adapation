@@ -1,87 +1,134 @@
+"""Model architecture and training stages similar to that in:
+X. Li et al. (2020). Intelligent cross-machine fault diagnosis approach with deep auto-encoder and domain adaptation.
+Neurocomputing, 383, 235–247. https://doi.org/10.1016/j.neucom.2019.12.033
+
+
+Tensorflow implementation partially following:
+https://github.com/wzell/mann/blob/master/models/mann_sentiment_analysis.py.
+W. Zellinger et al., "Robust unsupervised domain adaptation
+for neural networks via moment alignment," arXiv preprint arXiv:1711.06114, 2017
+"""
+
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import Model, Sequential
+from models.mmd import mmd
 
-MISSING_LABEL_VALUE = -1
+
+def default_encoder(dim) -> keras.layers.Dense:
+    return keras.layers.Dense(dim, activation='relu')
 
 
-def combined_loss(target_weight: float = 1.0, decoder_weight: float = 1.0):
-    """Return a new loss function that combines autoencoder and classification loss,
-     where missing labels (target data) are ignored for classification.
-     :return: loss function for a [decoder output, classifier output] format"""
+def default_classifier():
+    model = Sequential()
+    model.add(keras.layers.Dense(10, activation='relu'))
+    model.add(keras.layers.Dense(10, activation='relu'))
+    model.add(keras.layers.Dense(1, activation='sigmoid'))
+    return model
 
-    def loss(y_true, y_pred):
-        autoencoder_loss = keras.losses.mean_squared_error(y_true[0], y_pred[0])
-        classifier_loss = keras.losses.binary_crossentropy(y_true[1], y_pred[1])
 
-        # Handle missing labels for the classifier head
-        missing_label_mask = tf.math.equal(y_true[1], MISSING_LABEL_VALUE)
-        masked_proportion = tf.reduce_mean(tf.cast(missing_label_mask, tf.float32))
+def default_transfer():
+    return keras.layers.Dense(10, activation='relu')
 
-        masked_classifier_loss = tf.where(missing_label_mask, 0.0, classifier_loss)
 
-        # # Compute the weight factor for autoencoder loss
-        # weight_factor = tf.where(missing_label_mask, target_weight, 1.0)
-        #
-        # # Apply the weight factor to the autoencoder loss
-        # weighted_autoencoder_loss = weight_factor * autoencoder_loss
+def default_decoder(dim) -> keras.layers.Dense:
+    model = Sequential()
+    model.add(keras.layers.Dense(10, activation='relu'))
+    model.add(keras.layers.Dense(dim, activation='linear'))
+    return model
 
-        # combine and adjust based on amount of points
-        autoencoder_loss = tf.math.reduce_mean(autoencoder_loss)
-        masked_classifier_loss = tf.math.reduce_mean(masked_classifier_loss) / (1-masked_proportion)
 
-        return decoder_weight * autoencoder_loss + masked_classifier_loss
-
-    return loss
+def transfer_stage_loss(mmd_beta):
+    def transfer_stage_loss_(dummy_true, transferred_concat):
+        transferred_s, transferred_t = tf.split(transferred_concat, 2, axis=1)
+        return mmd(transferred_s, transferred_t, mmd_beta)
+    return transfer_stage_loss_
 
 
 class Autoencoder:
-    def __init__(self, input_dim: int, encoder=None, decoder=None, classifier=None,
-                 target_weight: float = 1.0, decoder_weight: float = 1.0):
+    def __init__(self, input_dim: int, encoder_dim: int, encoder=None, decoder=None, transfer=None, classifier=None,
+                 aux_classifier_weight: float = 1.0, mmd_weight: float = 1.0, mmd_beta: float = 1.0):
+        """Create an autoencoder-based UDA model. Used encoder, decoder and auxiliary classifier in pretraining.
+        Then reuses trained encoder, transfer network (minimizes domain discrepancy) and another classifier.
+        The auxiliary classifier in the pretrain stage is a clone of the original classifier, if given.
+        For a custom transfer network, ensure that the last layer has 'activity_regularizer' as MMD loss."""
         self.input_dim = input_dim
-        self.encoder = encoder
-        self.decoder = decoder
-        self.classifier = classifier
-        self.target_weight = target_weight
-        self.decoder_weight = decoder_weight
-
-        self.classifier_model, self.combined_model = self._build_model()
+        self.encoder_dim = encoder_dim
+        self.aux_classifier_weight = aux_classifier_weight
+        self.mmd_weight = mmd_weight
+        self.mmd_beta = mmd_beta
         self.history_ = None
 
-    def _build_model(self):
-        # Encoder
-        input_layer = keras.Input(shape=(self.input_dim,))
-        if self.encoder is None:
-            encoded = keras.layers.Dense(10, activation='relu')(input_layer)
-        else:
-            encoded = self.encoder(input_layer)
+        self.encoder_model = None
+        self.pretrain_model = None
+        self.transfer_model = None
+        self._build_pretrain_models(encoder, decoder, classifier)
+        self._build_transfer_model(transfer, classifier)
 
-        # Decoder
-        if self.decoder is None:
-            decoder_output = keras.layers.Dense(self.input_dim, activation='linear')(encoded)
-        else:
-            decoder_output = self.decoder(encoded)
+    def _build_pretrain_models(self, encoder, decoder, classifier):
+        input_s = keras.layers.Input(shape=(self.input_dim,), name='source_input')
+        input_t = keras.layers.Input(shape=(self.input_dim,), name='target_input')
 
-        # Classifier
-        if self.classifier is None:
-            hidden = keras.layers.Dense(10, activation='relu')(encoded)
-            hidden = keras.layers.Dense(10, activation='relu')(hidden)
-            classifier_output = keras.layers.Dense(1, activation='sigmoid')(hidden)
-        else:
-            classifier_output = self.classifier(encoded)
+        # encoder used for both stages
+        if not encoder:
+            encoder = default_encoder(self.encoder_dim)
+        encoded_s = encoder(input_s)
+        encoded_t = encoder(input_t)
 
-        classifier_model = keras.Model(input_layer, classifier_output)
-        combined_model = keras.Model(inputs=input_layer, outputs=[decoder_output, classifier_output])
-        combined_model.compile(optimizer='adam',
-                               loss=combined_loss(self.target_weight, self.decoder_weight))
-        return classifier_model, combined_model
+        # decoder for pretraining
+        if not decoder:
+            decoder = default_decoder(self.input_dim)
+        decoded_s = decoder(encoded_s)
+        decoded_t = decoder(encoded_t)
+
+        # auxiliary classifier for pretraining, independent copy of final classifier if given
+        if not classifier:
+            aux_classifier = default_classifier()
+        else:
+            aux_classifier = classifier.copy_model()
+        aux_classified_s = aux_classifier(decoded_s)
+
+        self.encoder_model = Model(inputs=[input_s, input_t], outputs=[encoded_s, encoded_t])
+        self.pretrain_model = Model(inputs=[input_s, input_t],
+                                    outputs=[decoded_s, decoded_t, aux_classified_s])
+        self.pretrain_model.compile(loss=['mean_squared_error', 'mean_squared_error', 'binary_crossentropy'],
+                                    loss_weights=[1.0, 1.0, self.aux_classifier_weight])
+
+    def _build_transfer_model(self, transfer, classifier):
+        # set input layers, which will be encoded data
+        input_s = keras.layers.Input(shape=(self.encoder_dim,), name='source_input')
+        input_t = keras.layers.Input(shape=(self.encoder_dim,), name='target_input')
+
+        if not transfer:
+            transfer = default_transfer()
+        transferred_s = transfer(input_s)
+        transferred_t = transfer(input_t)
+
+        if not classifier:
+            classifier = default_classifier()
+        classified_s = classifier(transferred_s)
+        classified_t = classifier(transferred_t)
+
+        transferred_concat = tf.keras.backend.concatenate([transferred_s, transferred_t])
+        self.transfer_model = Model(inputs=[input_s, input_t],
+                                    outputs=[transferred_concat, classified_s])
+        self.transfer_model.compile(loss=[transfer_stage_loss(self.mmd_beta), 'binary_crossentropy'],
+                                    loss_weights=[self.mmd_weight, 1.0])
 
     def fit(self, xs, ys, xt, **fit_params):
-        x_train = np.concatenate([xs, xt])
-        y_train = np.concatenate([ys, np.full(len(xt), MISSING_LABEL_VALUE)])
-        hist = self.combined_model.fit(x_train, [x_train, y_train], shuffle=True, **fit_params)
+
+        # pretrain autoencoder with auxiliary classifier
+        self.pretrain_model.fit([xs, xt], [xs, xt, ys], **fit_params)
+
+        # use fixed encodings for final classification, while minimizing MDD halfway
+        enc_s, enc_t = self.encoder_model.predict([xs, xt], verbose=0)
+        hist = self.transfer_model.fit([enc_s, enc_t], [ys, ys], **fit_params)
         self.history_ = hist.history
         return self
 
     def predict(self, x, verbose=0):
-        return self.classifier_model.predict(x, verbose=verbose)
+        # some redundancy because networks were compiled expecting two data sets
+        enc, _, = self.encoder_model.predict([x, x], verbose=verbose)
+        _, pred = self.transfer_model.predict([enc, enc], verbose=verbose)
+        return pred
