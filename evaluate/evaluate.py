@@ -63,7 +63,6 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
     models = dict()
     pbar = tqdm([
         ('s', 's'),
-        ('g', 'g'),
         ('t', 't'),
         ('s', 't'),
         ('s', 'g')], disable=not verbose)

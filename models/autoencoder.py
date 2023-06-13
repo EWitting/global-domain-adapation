@@ -17,7 +17,7 @@ from models.mmd import mmd
 
 
 def default_encoder(dim) -> keras.layers.Dense:
-    return keras.layers.Dense(dim, activation='relu')
+    return keras.layers.Dense(dim, activation='linear')
 
 
 def default_classifier():
@@ -34,7 +34,6 @@ def default_transfer():
 
 def default_decoder(dim) -> keras.layers.Dense:
     model = Sequential()
-    model.add(keras.layers.Dense(10, activation='relu'))
     model.add(keras.layers.Dense(dim, activation='linear'))
     return model
 
