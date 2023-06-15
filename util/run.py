@@ -21,13 +21,16 @@ def run_generate(builder, name: str = None, store_path: str = None) -> tuple[Sto
 
 
 def run_eval(name: str, model, model_params: dict, fit_params: dict,
-             train_split: float, identifier: str = None, store_path: str = None) -> dict:
+             train_split: float, multi_param=False, identifier: str = None, store_path: str = None) -> dict:
     """Load a stored dataset and evaluate a model's performance on it, then store results.
     :param name: name of the folder with the results of the run
     :param model: class of the adaptation model, such as adapt DANN, ADDA, MDD etc.
-    :param model_params: parameters for the model class's __init__
+    :param model_params: parameters for the model class's __init__.
+    If multi_param is True, instead a dictionary with a nested dictionaries of values for each configuration.
+    Keys formatted like 's-only' and 's->t'.
     :param fit_params: parameters for the model class's fit
-    :param train_split: proportion to use for training data, use rest for test. None to ignore.
+    :param train_split: proportion to use for training data, use rest for test.
+    :param multi_param: use different parameters for different source/target configurations. See 'model_params'.
     :param identifier: appended to the results file name.
     Use to prevent overwriting when evaluating multiple models on the same dataset.
     :param store_path: path to the directory containing runs, <cwd>/results if None
@@ -36,6 +39,13 @@ def run_eval(name: str, model, model_params: dict, fit_params: dict,
     store = Store(name, store_path)
     data = store.load_data()
 
-    deep_metrics = evaluate_deep(data, lambda: model(**model_params), fit_params, train_split)
+    if multi_param:
+        builder = dict()
+        for key in model_params:
+            builder[key] = lambda: model(**(model_params[key]))
+    else:
+        builder = lambda: model(**model_params)
+
+    deep_metrics = evaluate_deep(data, builder, fit_params, train_split)
     store.save_eval(deep_metrics, model.__name__, model_params, fit_params, identifier)
     return deep_metrics

@@ -43,7 +43,9 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, train_split: float, 
     and give insight into the dataset's characteristics and separability.
 
     :param dataset: (tuple of xg, yg, xs, ys, xt, yt) data and labels for source, global and target sets
-    :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
+    :param model_builder: Function that returns a new model every call.
+    Model should have fit and predict methods, like BaseAdaptDeep.
+    Can also be a dictionary, to use a different model for every configuration. Keys formatted like "s-only" or "s->t".
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
     :param train_split: proportion to use for training data, use rest for test.
     :param distance: compute distance between domains by training a classifier.
@@ -77,7 +79,15 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, train_split: float, 
     for source, target in pbar:
         name = f'{source}-only' if source == target else f'{source}->{target}'
         pbar.set_description(f"Training model '{name}'")
-        models[name] = model_builder().fit(
+
+        # select model based on
+        if type(model_builder) is dict:
+            builder = model_builder[name]
+        else:
+            builder = model_builder
+
+        # create new model and fit to the training split of the data
+        models[name] = builder().fit(
             domains[source]['x'][split_indexes[source]:],
             domains[source]['y'][split_indexes[source]:],
             domains[target]['x'][split_indexes[target]:], **fit_params)
