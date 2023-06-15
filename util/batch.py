@@ -36,12 +36,13 @@ def batch_generate(builder, num: int, store_path: str) -> list[tuple[Store, dict
     return res
 
 
-def batch_eval(store_path: str, model, model_params: dict, fit_params: dict, identifier: str = None) -> list[dict]:
+def batch_eval(store_path: str, model, model_params: dict, fit_params: dict, train_split: float, identifier: str = None) -> list[dict]:
     """Load all dataset stores in a directory and evaluate a model's performance on it, then store results.
     :param store_path: path to the directory containing runs
     :param model: class of the adaptation model, such as adapt DANN, ADDA, MDD etc.
     :param model_params: parameters for the model class's __init__
     :param fit_params: parameters for the model class's fit
+    :param train_split: proportion to use for training data, use rest for test. None to ignore.
     :param identifier: appended to the results file name if not None
     Use to prevent overwriting when evaluating multiple models on the same dataset.
     :returns: resulting dictionaries from evaluation
@@ -60,7 +61,7 @@ def batch_eval(store_path: str, model, model_params: dict, fit_params: dict, ide
     pbar = tqdm(names)
     for name in pbar:
         pbar.set_description(f"Evaluating on dataset {name}")
-        metrics = run_eval(name, model, model_params, fit_params, identifier, store_path)
+        metrics = run_eval(name, model, model_params, fit_params, train_split, identifier, store_path)
         res.append(metrics)
         pbar.set_description("Finished evaluating model")
 
