@@ -53,3 +53,7 @@ def covariate_strong() -> CovShiftBuilder:
                                target_scale=COV_SCALE_STRONG,
                                bias_dist=COV_DIST_STRONG)
     return CovShiftBuilder(_init_classification, selector)
+
+
+bias_types = [concept_weak, concept_strong, covariate_weak, covariate_strong]
+bias_names = [func.__name__ for func in bias_types]
