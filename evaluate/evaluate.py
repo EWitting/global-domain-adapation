@@ -114,9 +114,9 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, train_split: float, 
     return metrics
 
 
-def evaluate_single(dataset, model_builder, fit_params: dict, source: str, target: str) -> float:
+def evaluate_single(dataset, model_builder, fit_params: dict, source: str, target: str,  train_split: float = 0.7) -> float:
     """Evaluate a domain adaptation model on a dataset and return accuracy on the target domain
-
+    :param train_split: proportion to use for training data, use rest for validation.
     :param dataset: (tuple of xg, yg, xs, ys, xt, yt) data and labels for source, global and target sets
     :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
@@ -132,15 +132,21 @@ def evaluate_single(dataset, model_builder, fit_params: dict, source: str, targe
         't': {'x': xt, 'y': yt},
     }
 
+    split_indexes = {
+        'g': int(train_split*len(xg)),
+        's': int(train_split*len(xs)),
+        't': int(train_split*len(xt))
+    }
+
     # train
     model = model_builder().fit(
-        domains[source]['x'],
-        domains[source]['y'],
-        domains[target]['x'], **fit_params)
+        domains[source]['x'][split_indexes[source]:],
+        domains[source]['y'][split_indexes[source]:],
+        domains[target]['x'][split_indexes[target]:], **fit_params)
 
     # evaluate
-    x = domains['t']['x']
-    y = domains['t']['y']
+    x = domains[target]['x'][:split_indexes[target]]
+    y = domains[target]['y'][:split_indexes[target]]
     y_pred = model.predict(x)
     acc = accuracy_score(y, y_pred > 0.5)
 
