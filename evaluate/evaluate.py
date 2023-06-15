@@ -36,7 +36,7 @@ def analyze_data(dataset) -> dict:
     return res
 
 
-def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = False, verbose: bool = False) -> dict:
+def evaluate_deep(dataset, model_builder, fit_params: dict, train_split: float, distance: bool = False, verbose: bool = False) -> dict:
     """Evaluate a domain adaptation model on a dataset.
     Trains and evaluates the model multiple times with various combinations of domains.
     Can be used to both evaluate the efficiency of the DA with respect to baselines,
@@ -45,6 +45,7 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
     :param dataset: (tuple of xg, yg, xs, ys, xt, yt) data and labels for source, global and target sets
     :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
     :param fit_params: parameters like epoch, batch size etc. for `model.fit`
+    :param train_split: proportion to use for training data, use rest for test.
     :param distance: compute distance between domains by training a classifier.
     Costly, accounts for about 40% of total evaluation time, disable to speed up.
     :param verbose: show progress bars
@@ -58,12 +59,18 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
         't': {'x': xt, 'y': yt},
     }
 
+    # compute index of train/test split, in case each domain has different sample count
+    split_indexes = {
+        'g': int(train_split*len(xg)),
+        's': int(train_split*len(xs)),
+        't': int(train_split*len(xt))
+    }
+
     # first train models
     metrics = dict()
     models = dict()
     pbar = tqdm([
         ('s', 's'),
-        ('g', 'g'),
         ('t', 't'),
         ('s', 't'),
         ('s', 'g')], disable=not verbose)
@@ -71,9 +78,9 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
         name = f'{source}-only' if source == target else f'{source}->{target}'
         pbar.set_description(f"Training model '{name}'")
         models[name] = model_builder().fit(
-            domains[source]['x'],
-            domains[source]['y'],
-            domains[target]['x'], **fit_params)
+            domains[source]['x'][split_indexes[source]:],
+            domains[source]['y'][split_indexes[source]:],
+            domains[target]['x'][split_indexes[target]:], **fit_params)
 
         # compute a convergence indication from the history
         if hasattr(models[name], 'history_') and 'acc' in models[name].history_:
@@ -83,18 +90,17 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
 
     # then evaluate accuracy on different test sets (not every combination is used)
     pbar = tqdm([
-        ('s-only', 's'),
-        ('g-only', 'g'),
         ('t-only', 't'),
         ('s-only', 't'),
-        ('g-only', 't'),
         ('s->t', 't'),
         ('s->g', 't')], disable=not verbose)
     for model, test in pbar:
         name = f"{model}-acc-on-{test}"
         pbar.set_description(f"Evaluating model '{model}' on '{test}'")
-        x = domains[test]['x']
-        y = domains[test]['y']
+
+        x = domains[test]['x'][:split_indexes[test]]
+        y = domains[test]['y'][:split_indexes[test]]
+
         y_pred = models[model].predict(x)
         acc = accuracy_score(y, y_pred > 0.5)
         metrics[name] = acc
@@ -106,6 +112,39 @@ def evaluate_deep(dataset, model_builder, fit_params: dict, distance: bool = Fal
             metrics[key] = dists[key]
 
     return metrics
+
+
+def evaluate_single(dataset, model_builder, fit_params: dict, source: str, target: str) -> float:
+    """Evaluate a domain adaptation model on a dataset and return accuracy on the target domain
+
+    :param dataset: (tuple of xg, yg, xs, ys, xt, yt) data and labels for source, global and target sets
+    :param model_builder: (() -> BaseAdaptDeep model) function that returns a new model every call
+    :param fit_params: parameters like epoch, batch size etc. for `model.fit`
+    :param source: labeled training data, either 's' 't' or 'g'
+    :param target: unlabeled training data, either 's' 't' or 'g'
+    :returns dictionary with all computed results
+    """
+
+    xg, yg, xs, ys, xt, yt = dataset
+    domains = {
+        's': {'x': xs, 'y': ys},
+        'g': {'x': xg, 'y': yg},
+        't': {'x': xt, 'y': yt},
+    }
+
+    # train
+    model = model_builder().fit(
+        domains[source]['x'],
+        domains[source]['y'],
+        domains[target]['x'], **fit_params)
+
+    # evaluate
+    x = domains['t']['x']
+    y = domains['t']['y']
+    y_pred = model.predict(x)
+    acc = accuracy_score(y, y_pred > 0.5)
+
+    return acc
 
 
 def _calculate_distance(domains: dict, fit_params, model_builder, verbose) -> dict:

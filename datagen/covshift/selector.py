@@ -53,7 +53,7 @@ Intended use is passing it to the builder after creation, instead of calling the
         """
 
         # split into source candidates, global, target candidates
-        xs_, ys_, xg, yg, xt_, yt_ = self._make_split(x, y)
+        xg, yg, xs_, ys_, xt_, yt_ = self._make_split(x, y)
 
         stds = x.std(0)
         center = x.mean(0)

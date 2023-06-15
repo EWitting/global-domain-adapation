@@ -11,25 +11,28 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score
 
 
-def visualize_shift2d(xg, yg, xs, ys, xt, yt):
+def visualize_shift2d(xg, yg, xs, ys, xt, yt, title=None):
     """Plot the positions of the source, global and target sets, with markers for binary labels.
     Uses matplotlib."""
 
-    _, ax1 = plt.subplots(1, 1, figsize=(6, 5))
-    ax1.set_title("Input space")
+    _, ax1 = plt.subplots(1, 1, dpi=200, figsize=(4, 4))
+    if title:
+        ax1.set_title(title)
     for x, y, label, c in [
         (xg, yg, 'global', 'green'),
         (xs, ys, 'source', 'blue'),
-        (xt, yt, 'target', 'orange')]:
+        (xt, yt, 'target', 'red')]:
         pos = x[y == 1]
         neg = x[y == 0]
 
-        ax1.scatter(pos[:, 0], pos[:, 1], label=label, c=c, marker='o')
-        ax1.scatter(neg[:, 0], neg[:, 1], c=c, marker='x')
+        ax1.scatter(pos[:, 0], pos[:, 1], s=10, label=label, c=c, marker='o')
+        ax1.scatter(neg[:, 0], neg[:, 1], s=10, c=c, marker='x')
     ax1.legend(loc="lower right")
     ax1.set_yticklabels([])
     ax1.set_xticklabels([])
     ax1.tick_params(direction='in')
+    ax1.set_xlabel("Feature 1")
+    ax1.set_ylabel("Feature 2")
     plt.show()
 
 
