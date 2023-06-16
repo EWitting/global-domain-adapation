@@ -11,8 +11,8 @@ def gen(builder, num, name):
     batch_generate(builder, num, batch_path)
 
 
-for bias in bias_types:
-    gen(bias(), 10, bias.__name__)
-    gen(bias(), 10, f"{bias.__name__}_val")
-
-
+if __name__ == "__main__":
+    """Generates one train and one validation dataset batch per bias type. Stored in the PREFIX subdirectory."""
+    for bias in bias_types:
+        gen(bias(), 10, bias.__name__)
+        gen(bias(), 10, f"{bias.__name__}_val")
