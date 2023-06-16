@@ -10,7 +10,7 @@ from util.batch import batch_eval
 
 PREFIX = "v4"
 
-FIT_PARAMS = dict(epochs=20,
+FIT_PARAMS = dict(epochs=30,
                   batch_size=16,
                   verbose=0)
 

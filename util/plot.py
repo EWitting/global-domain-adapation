@@ -14,11 +14,12 @@ DISPLAY_NAMES = {
 }
 
 
-def plot_target_acc_box(results: pd.DataFrame, title: str) -> None:
+def plot_target_acc_box(results: pd.DataFrame, title: str, save: str = None) -> None:
     """
     Plot for each model the target accuracy boxplot.
     :param results: dataframe in the format returned by batch_load_eval
-    :param title
+    :param title: plot title
+    :param save: path to save figure. If None, shows figure directly.
     """
     cols = ['s-only', 's->g', 's->t', 't-only']
 
@@ -27,13 +28,17 @@ def plot_target_acc_box(results: pd.DataFrame, title: str) -> None:
     acc = acc.rename(columns=DISPLAY_NAMES)
 
     plt.figure(dpi=300, figsize=(3.5, 3.5))
-    acc.boxplot(ax=plt.gca())
+    acc.boxplot(ax=plt.gca(), showfliers=False)
     plt.gca().yaxis.set_major_formatter(FORMAT_PERC)
 
     plt.title(title)
     plt.ylabel("Accuracy (%)")
     plt.ylim(bottom=0.0, top=1)
     plt.tight_layout()
+
+    if save:
+        plt.savefig(save)
+
     plt.show()
 
 
@@ -69,6 +74,14 @@ def plot_relative_adaptation(df: pd.DataFrame, title: str = None) -> None:
     plt.ylabel("Relative Adaptation(%)")
     plt.tight_layout()
     plt.show()
+
+
+def print_median_acc(df: pd.DataFrame):
+    """Not a plotting function, but similar processing steps. Outputs to terminal."""
+    acc = _process_target_acc(df)
+    cols = ['s-only', 's->g', 's->t', 't-only']
+    for col in cols:
+        print(f'{col:8} median: {acc[col].median():.3f}, var: {acc[col].median():.3f}')
 
 
 def _process_target_acc(df: pd.DataFrame) -> pd.DataFrame:
