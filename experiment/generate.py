@@ -3,7 +3,7 @@ import os
 from util.batch import batch_generate
 from experiment.presets.bias import bias_types
 
-PREFIX = "v4"
+PREFIX = "v5"
 
 
 def gen(builder, num, name):
@@ -12,7 +12,7 @@ def gen(builder, num, name):
 
 
 if __name__ == "__main__":
-    """Generates one train and one validation dataset batch per bias type. Stored in the PREFIX subdirectory."""
+    """Generates one train and one validation dataset batch per bias type. Stored in the <PREFIX> subdirectory."""
     for bias in bias_types:
         gen(bias(), 10, bias.__name__)
         gen(bias(), 50, f"{bias.__name__}_val")

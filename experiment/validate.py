@@ -14,33 +14,35 @@ FIT_PARAMS = dict(epochs=30,
                   batch_size=16,
                   verbose=0)
 
+
+def load_best_trial(bias, model, adapt_name):
+    study_name = f"{PREFIX}-{bias}-{model.__name__}-{adapt_name}"
+    return optuna.load_study(study_name=study_name, storage="sqlite:///../db.sqlite3")
+
+
 if __name__ == "__main__":
     """Run the evaluation framework for every model and bias type, for every configuration. Using optimized parameters.
     Loads parameters from Optuna database, based on PREFIX and identifier in study name. Reuses t-only for s-only.
     Runs on the validation data sets."""
 
-    # For each DDA method
-    for model, param_generator in [
-            (Autoencoder, auto_param_gen),
-            (DANN, dann_param_gen)]:
+    for bias_name in bias_names:
+        store_path = os.path.join(os.getcwd(), '../results', PREFIX, f"{bias_name}_val")
 
-        # For each shift type and amount
-        for bias in bias_names:
-            print(f"Evaluating {model.__name__} on {bias}")
+        dann_params = {
+            's-only': dann_param_gen(None, lambda_=0.0),
+            's->t': dann_param_gen(load_best_trial(bias_name, DANN, 's->t')),
+            's->g': dann_param_gen(load_best_trial(bias_name, DANN, 's->g')),
+            't-only': dann_param_gen(None, lambda_=0.0)
+        }
 
-            # Load optimal hyperparameters for each configuration (reuses t-only for supervised s-only config)
-            model_params = dict()
-            for eval_name, optim_name in [
-                    ('s-only', 't-only'),
-                    ('s->g', 's->g'),
-                    ('s->t', 's->t'),
-                    ('t-only', 't-only')]:
-                # Load optuna study by name and use best_trial for parameters
-                study_name = f"{PREFIX}-{bias}-{model.__name__}-{optim_name}"
-                study = optuna.load_study(study_name=study_name, storage="sqlite:///../db.sqlite3")
-                model_params[eval_name] = param_generator(study.best_trial)
+        auto_params = {
+            's-only': auto_param_gen(load_best_trial(bias_name, Autoencoder, 't-only'), mmd_weight=0.0),
+            's->t': auto_param_gen(load_best_trial(bias_name, Autoencoder, 's->t')),
+            's->g': auto_param_gen(load_best_trial(bias_name, Autoencoder, 's->g')),
+            't-only': auto_param_gen(load_best_trial(bias_name, Autoencoder, 't-only'), mmd_weight=0.0),
+        }
 
-            # Run these four configurations on automatically stores results on disk
-            store_path = os.path.join(os.getcwd(), '../results', PREFIX, f"{bias}_val")
-            batch_eval(store_path, model, model_params, FIT_PARAMS,
-                       train_split=.7, multi_param=True, identifier=model.__name__)
+        batch_eval(store_path, DANN, dann_params, FIT_PARAMS,
+                   train_split=.7, multi_param=True, identifier=DANN.__name__)
+        batch_eval(store_path, Autoencoder, auto_params, FIT_PARAMS,
+                   train_split=.7, multi_param=True, identifier=Autoencoder.__name__)

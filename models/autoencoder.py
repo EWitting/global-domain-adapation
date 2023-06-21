@@ -38,16 +38,16 @@ def default_decoder(dim) -> keras.layers.Dense:
     return model
 
 
-def transfer_stage_loss(mmd_beta):
-    def transfer_stage_loss_(dummy_true, transferred_concat):
-        transferred_s, transferred_t = tf.split(transferred_concat, 2, axis=1)
-        return mmd(transferred_s, transferred_t, mmd_beta)
-    return transfer_stage_loss_
+def transfer_stage_loss(y_true, y_pred):
+    """Loss function for transfer stage of network. Does not compare predictions against a ground truth.
+    Only compares activations from source against predictions from target, using MDD."""
+    transferred_s, transferred_t = tf.split(y_pred, 2, axis=1)
+    return mmd(transferred_s, transferred_t)
 
 
 class Autoencoder:
     def __init__(self, input_dim: int, encoder_dim: int, encoder=None, decoder=None, transfer=None, classifier=None,
-                 aux_classifier_weight: float = 1.0, mmd_weight: float = 1.0, mmd_beta: float = 1.0):
+                 aux_classifier_weight: float = 1.0, mmd_weight: float = 1.0, target_decode_weight: float = 1.0):
         """Create an autoencoder-based UDA model. Used encoder, decoder and auxiliary classifier in pretraining.
         Then reuses trained encoder, transfer network (minimizes domain discrepancy) and another classifier.
         The auxiliary classifier in the pretrain stage is a clone of the original classifier, if given.
@@ -56,7 +56,6 @@ class Autoencoder:
         self.encoder_dim = encoder_dim
         self.aux_classifier_weight = aux_classifier_weight
         self.mmd_weight = mmd_weight
-        self.mmd_beta = mmd_beta
         self.history_ = None
 
         self.encoder_model = None
@@ -107,12 +106,11 @@ class Autoencoder:
         if not classifier:
             classifier = default_classifier()
         classified_s = classifier(transferred_s)
-        classified_t = classifier(transferred_t)
 
         transferred_concat = tf.keras.backend.concatenate([transferred_s, transferred_t])
         self.transfer_model = Model(inputs=[input_s, input_t],
                                     outputs=[transferred_concat, classified_s])
-        self.transfer_model.compile(loss=[transfer_stage_loss(self.mmd_beta), 'binary_crossentropy'],
+        self.transfer_model.compile(loss=[transfer_stage_loss, 'binary_crossentropy'],
                                     loss_weights=[self.mmd_weight, 1.0])
 
     def fit(self, xs, ys, xt, **fit_params):

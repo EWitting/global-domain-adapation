@@ -9,7 +9,7 @@ from experiment.presets.param import auto_param_gen, dann_param_gen
 from models.autoencoder import Autoencoder
 from util.batch import batch_eval_single
 
-PREFIX = "v4"
+PREFIX = "v5"
 
 FIT_PARAMS = dict(epochs=20,
                   batch_size=16,
@@ -27,31 +27,31 @@ def objective(path, model_cls, param_opt, source_domain, target_domain):
     return _objective
 
 
+def opt(model, param_generator, bias: str, source: str, target: str, n_trials: int = 15):
+    """Run hyperparameter optimization for a given configuration.
+       Stores result in Optuna database, with PREFIX and identifier in study name."""
+    store_path = os.path.join(os.getcwd(), '../results', PREFIX, bias)
+    adapt_name = f'{source}-only' if source == target else f'{source}->{target}'
+    study_name = f"{PREFIX}-{bias}-{model.__name__}-{adapt_name}"
+
+    obj = objective(store_path, model, param_generator, source, target)
+    study = optuna.create_study(
+        storage="sqlite:///../db.sqlite3",
+        study_name=study_name,
+        direction='maximize',
+        load_if_exists=False)
+    study.optimize(obj, n_trials=n_trials)
+
+
 if __name__ == "__main__":
-    """Run hyperparameter optimization on every model and bias type, for every configuration.
-    Computes t-only as supervised. Stores result in Optuna database, with PREFIX and identifier in study name."""
 
-    # For each DDA method
-    for model, param_generator, n_trials in [
-            (Autoencoder, auto_param_gen, 20),
-            (DANN, dann_param_gen, 10)]:
+    for bias_name in bias_names:
 
-        # For each shift type and amount
-        for bias in bias_names:
-            store_path = os.path.join(os.getcwd(), '../results', PREFIX, bias)
+        # adaptation
+        opt(DANN, dann_param_gen, bias_name, 's', 't')
+        opt(DANN, dann_param_gen, bias_name, 's', 'g')
+        opt(Autoencoder, auto_param_gen, bias_name, 's', 't')
+        opt(Autoencoder, auto_param_gen, bias_name, 's', 't')
 
-            # For the supervised/adapt-to-target/adapt-to-global configurations
-            for source, target, name in [
-                    ('t', 't', 't-only'),
-                    ('s', 't', 's->t'),
-                    ('s', 'g', 's->g')]:
-
-                # Create an optuna study, with a custom objective function that optimizes this configuration
-                study_name = f"{PREFIX}-{bias}-{model.__name__}-{name}"
-                obj = objective(store_path, model, param_generator, source, target)
-                study = optuna.create_study(
-                        storage="sqlite:///../db.sqlite3",
-                        study_name=study_name,
-                        direction='maximize',
-                        load_if_exists=False)
-                study.optimize(obj, n_trials=n_trials)
+        # supervised, zero adaptation parameter, only Autoencoder has params left to optimize
+        opt(Autoencoder, lambda trial: auto_param_gen(trial, mmd_weight=0), bias_name, 't', 't')
