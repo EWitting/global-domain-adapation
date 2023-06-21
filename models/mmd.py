@@ -21,7 +21,7 @@ def compute_kernel(x, y):
         tf.reshape(y, tf.stack([1, y_size, dim])), tf.stack([x_size, 1, 1])
     )
     return tf.exp(
-        tf.reduce_mean(tf.square(tiled_x - tiled_y), axis=2) / tf.cast(dim, tf.float32)
+        -tf.reduce_mean(tf.square(tiled_x - tiled_y), axis=2) / tf.cast(dim, tf.float32)
     )
 
 
