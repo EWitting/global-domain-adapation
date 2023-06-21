@@ -8,7 +8,7 @@ from experiment.presets.param import auto_param_gen, dann_param_gen
 from models.autoencoder import Autoencoder
 from util.batch import batch_eval
 
-PREFIX = "v4"
+PREFIX = "v6"
 
 FIT_PARAMS = dict(epochs=30,
                   batch_size=16,

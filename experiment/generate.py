@@ -3,7 +3,7 @@ import os
 from util.batch import batch_generate
 from experiment.presets.bias import bias_types
 
-PREFIX = "v5"
+PREFIX = "v6"
 
 
 def gen(builder, num, name):
