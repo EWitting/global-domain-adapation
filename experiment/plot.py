@@ -4,7 +4,7 @@ from experiment.presets.bias import bias_names
 from util.batch import batch_load_eval
 from util.plot import plot_target_acc_box, print_median_acc
 
-PREFIX = "v4"
+PREFIX = "v6"
 
 if __name__ == "__main__":
     """Generate a plot for each of the shift types and methods, displaying box plots with accuracy per configuration."""

@@ -20,6 +20,13 @@ def run_generate(builder, name: str = None, store_path: str = None) -> tuple[Sto
     return store, data_stats
 
 
+def model_param_combiner(model, params):
+    """"Functions similar to `lambda: model(**params), but a method is required for lazy evaluation complications"""
+    def _func():
+        return model(**params)
+    return _func
+
+
 def run_eval(name: str, model, model_params: dict, fit_params: dict,
              train_split: float, multi_param=False, identifier: str = None, store_path: str = None) -> dict:
     """Load a stored dataset and evaluate a model's performance on it, then store results.
@@ -42,7 +49,7 @@ def run_eval(name: str, model, model_params: dict, fit_params: dict,
     if multi_param:
         builder = dict()
         for key in model_params:
-            builder[key] = lambda: model(**(model_params[key]))
+            builder[key] = model_param_combiner(model, model_params[key])
     else:
         builder = lambda: model(**model_params)
 

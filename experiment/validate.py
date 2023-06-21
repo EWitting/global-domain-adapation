@@ -17,7 +17,7 @@ FIT_PARAMS = dict(epochs=30,
 
 def load_best_trial(bias, model, adapt_name):
     study_name = f"{PREFIX}-{bias}-{model.__name__}-{adapt_name}"
-    return optuna.load_study(study_name=study_name, storage="sqlite:///../db.sqlite3")
+    return optuna.load_study(study_name=study_name, storage="sqlite:///../db.sqlite3").best_trial
 
 
 if __name__ == "__main__":
@@ -42,6 +42,7 @@ if __name__ == "__main__":
             't-only': auto_param_gen(load_best_trial(bias_name, Autoencoder, 't-only'), mmd_weight=0.0),
         }
 
+        print(f"Evaluating with {bias_name}")
         batch_eval(store_path, DANN, dann_params, FIT_PARAMS,
                    train_split=.7, multi_param=True, identifier=DANN.__name__)
         batch_eval(store_path, Autoencoder, auto_params, FIT_PARAMS,
