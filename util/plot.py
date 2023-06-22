@@ -1,5 +1,6 @@
 import pandas as pd
 
+from scipy.stats import ttest_ind
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
@@ -33,7 +34,7 @@ def plot_target_acc_box(results: pd.DataFrame, title: str, save: str = None) -> 
 
     plt.title(title)
     plt.ylabel("Accuracy (%)")
-    plt.ylim(bottom=0.0, top=1)
+    plt.ylim(bottom=0.4, top=1)
     plt.tight_layout()
 
     if save:
@@ -76,12 +77,18 @@ def plot_relative_adaptation(df: pd.DataFrame, title: str = None) -> None:
     plt.show()
 
 
-def print_median_acc(df: pd.DataFrame):
+def print_acc_stats(df: pd.DataFrame, alpha=0.002):
     """Not a plotting function, but similar processing steps. Outputs to terminal."""
     acc = _process_target_acc(df)
     cols = ['s-only', 's->g', 's->t', 't-only']
     for col in cols:
-        print(f'{col:8} median: {acc[col].median():.3f}, var: {acc[col].median():.3f}')
+        series = acc[col]
+        _, p = ttest_ind(acc['s-only'], series, equal_var=False)
+        print(f'{col:8} median: {series.median():.3f}, '
+              f'mean: {series.mean():.3f}, '
+              f'std: {series.std():.3f}, '
+              f'p={p:.3f} '
+              + ('(SIGN)' if p < alpha else ''))
 
 
 def _process_target_acc(df: pd.DataFrame) -> pd.DataFrame:

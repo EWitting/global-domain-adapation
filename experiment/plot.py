@@ -2,7 +2,7 @@ import os
 
 from experiment.presets.bias import bias_names
 from util.batch import batch_load_eval
-from util.plot import plot_target_acc_box, print_median_acc
+from util.plot import plot_target_acc_box, print_acc_stats
 
 PREFIX = "v6"
 
@@ -29,5 +29,5 @@ if __name__ == "__main__":
 
             # print median to terminal
             print(title)
-            print_median_acc(data)
+            print_acc_stats(data)
             print()
