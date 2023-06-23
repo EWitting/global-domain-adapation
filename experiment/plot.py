@@ -17,12 +17,13 @@ if __name__ == "__main__":
         # iterate over methods
         results = results.groupby('identifier')
         for model, data in results:
-
-            # Format display title and filename
-            bias_formatted = ' '.join([w.capitalize() for w in bias.split('_')])
-            title = f"{bias_formatted} - {model}"
             file_name = f"{bias}_{model}"
             plot_path = os.path.join(os.getcwd(), '../results', PREFIX, file_name)
+
+            # Format display title
+            bias_formatted = ' '.join([w.capitalize() for w in bias.split('_')])
+            model = str(model).replace("$", "$^\\ast$")
+            title = f"{bias_formatted} - {model}"
 
             # Plot and save
             plot_target_acc_box(data, title, save=plot_path)
